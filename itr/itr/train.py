@@ -49,7 +49,8 @@ class MyLightninModule(pl.LightningModule):
     
     def __init__(self):
         super().__init__()         
-        self.model = gen_model_loaders(preEncDec)[0]      
+        self.gen_res = gen_model_loaders(preEncDec)
+        self.model=self.gen_res[0]     
         
 
     def forward(self, source,target):
@@ -86,31 +87,30 @@ class MyLightninModule(pl.LightningModule):
     @pl.data_loader
     def train_dataloader(self):
         # REQUIRED
-        return gen_model_loaders(preEncDec)[2]
+        return self.gen_res[2]
 
     @pl.data_loader
     def val_dataloader(self):
         # OPTIONAL
-        return gen_model_loaders(preEncDec)[3]
+        return self.gen_res[3]
 
     def configure_optimizers(self):
         # REQUIRED
         optimizer = torch.optim.Adam(self.model.parameters(), lr=preEncDec.lr)
-        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, len(gen_model_loaders(preEncDec)[2]), eta_min=preEncDec.lr)
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, len(self.gen_res[2]), eta_min=preEncDec.lr)
         return [optimizer], [scheduler]
 
     def save(self):
-      self.model.save(gen_model_loaders(preEncDec)[1], preEncDec.model_output_dirs)
+      self.model.save(self.gen_res[1], preEncDec.model_output_dirs)
   
     
 
-from config import replace, preEnc, preEncDec
+
 
 
 def main():
     
     rconf = preEncDec
-    model, tokenizers, train_loader, eval_loader = gen_model_loaders(rconf)
     model = MyLightninModule()
     logger = TensorBoardLogger("tb_logs", name="my_modelFin")
     trainer = Trainer(
